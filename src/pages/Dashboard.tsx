@@ -326,46 +326,46 @@ export default function Dashboard() {
             className="h-full min-h-[400px] rounded-none border-0"
           />
 
-          {/* Floating controls */}
-          <div className="absolute bottom-4 left-4 right-4 max-w-md mx-auto space-y-3">
-            {/* Check-in countdown */}
-            <Card className="bg-card/95 backdrop-blur-md border-border/60 shadow-lg">
-              <CardContent className="p-3 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-accent" />
-                  <span className="text-sm font-medium">Next check-in</span>
-                </div>
-                <span className="text-sm text-muted-foreground">
-                  {user?.checkInInterval ?? 10} min
-                </span>
-              </CardContent>
-            </Card>
-
-            {/* Emergency button */}
-            <EmergencyButton
-              journeyId={activeJourney._id}
-              onTriggered={() => {
-                toast.error("Emergency alert sent to your trusted contacts!");
-              }}
-            />
-
-            {/* Quick actions */}
+          {/* Floating controls — top of map */}
+          <div className="absolute top-4 left-4 right-4 max-w-md mx-auto space-y-2.5">
+            {/* Emergency + I'm Safe row */}
             <div className="flex gap-2">
+              <EmergencyButton
+                journeyId={activeJourney._id}
+                onTriggered={() => {
+                  toast.error("Emergency alert sent to your trusted contacts!");
+                }}
+              />
               <Button
                 variant="outline"
-                className="flex-1 bg-card/95 backdrop-blur-md border-border/60"
+                size="lg"
+                className="flex-1 h-14 text-base font-bold gap-2.5 bg-card/95 backdrop-blur-md border-border/60 shadow-lg rounded-xl"
                 onClick={() => setCheckInOpen(true)}
               >
-                <Check className="w-4 h-4 mr-2" />
+                <Check className="w-5 h-5" />
                 I'm Safe
               </Button>
+            </div>
+
+            {/* Secondary row */}
+            <div className="flex gap-2">
+              <Card className="flex-1 bg-card/95 backdrop-blur-md border-border/60 shadow-lg">
+                <CardContent className="p-2.5 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-accent" />
+                    <span className="text-xs font-medium">Check-in</span>
+                  </div>
+                  <span className="text-xs text-muted-foreground">
+                    {user?.checkInInterval ?? 10} min
+                  </span>
+                </CardContent>
+              </Card>
               <Button
                 variant="outline"
-                className="flex-1 bg-card/95 backdrop-blur-md border-border/60"
+                className="bg-card/95 backdrop-blur-md border-border/60 shadow-lg rounded-xl px-4"
                 onClick={() => setContactsOpen(true)}
               >
-                <Users className="w-4 h-4 mr-2" />
-                Contacts
+                <Users className="w-4 h-4" />
               </Button>
             </div>
           </div>

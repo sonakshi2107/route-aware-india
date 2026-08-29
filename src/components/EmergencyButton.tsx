@@ -54,7 +54,7 @@ export default function EmergencyButton({
       <Button
         variant="destructive"
         size="lg"
-        className="w-full rounded-xl h-14 text-base font-bold gap-2.5 shadow-lg shadow-destructive/20 hover:shadow-destructive/30 transition-shadow"
+        className="flex-1 rounded-xl h-14 text-base font-bold gap-2.5 shadow-lg shadow-destructive/20 hover:shadow-destructive/30 transition-shadow"
         onClick={() => setOpen(true)}
       >
         <Phone className="w-5 h-5" />
