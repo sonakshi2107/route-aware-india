@@ -25,6 +25,7 @@ import {
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { toast } from "sonner";
+import { validatePhoneNumber } from "@/lib/sms";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface TrustedContactsManagerProps {
@@ -46,9 +47,17 @@ export default function TrustedContactsManager({
   const [phone, setPhone] = useState("");
   const [relationship, setRelationship] = useState("");
   const [loading, setLoading] = useState(false);
+  const [phoneError, setPhoneError] = useState("");
 
   const handleAdd = async () => {
     if (!name.trim() || !phone.trim()) return;
+
+    if (!validatePhoneNumber(phone.trim())) {
+      setPhoneError("Enter a valid Indian phone number (10 digits)");
+      return;
+    }
+    setPhoneError("");
+
     setLoading(true);
     try {
       await addContact({
@@ -208,9 +217,16 @@ export default function TrustedContactsManager({
                     <Input
                       placeholder="Phone number"
                       value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
+                      onChange={(e) => {
+                        setPhone(e.target.value);
+                        if (phoneError) setPhoneError("");
+                      }}
                       type="tel"
+                      className={phoneError ? "border-destructive" : ""}
                     />
+                    {phoneError && (
+                      <p className="text-xs text-destructive">{phoneError}</p>
+                    )}
                     <Input
                       placeholder="Relationship (e.g., mother, friend, partner)"
                       value={relationship}

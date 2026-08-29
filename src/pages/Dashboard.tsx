@@ -17,7 +17,6 @@ import {
   TrendingUp,
   Star,
   Search,
-  MessageSquareWarning,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,7 +29,7 @@ import { api } from "@/convex/_generated/api";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 import MapView, { generateDemoRoutes } from "@/components/MapView";
-import EmergencyButton from "@/components/EmergencyButton";
+import SOSButton from "@/components/SOSButton";
 import CheckInModal from "@/components/CheckInModal";
 import TrustedContactsManager from "@/components/TrustedContactsManager";
 import SettingsPanel from "@/components/SettingsPanel";
@@ -77,8 +76,6 @@ export default function Dashboard() {
   const activeJourney = useQuery(api.journeys.getActive);
   const recentJourneys = useQuery(api.journeys.getRecent) ?? [];
   const contacts = useQuery(api.trustedContacts.list) ?? [];
-  const smsConfig = useQuery(api.smsConfig.checkSmsConfig);
-
   const createJourney = useMutation(api.journeys.create);
   const startJourney = useMutation(api.journeys.startJourney);
   const completeJourney = useMutation(api.journeys.complete);
@@ -103,6 +100,13 @@ export default function Dashboard() {
   // Panels
   const [contactsOpen, setContactsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+
+  // Listen for custom event from SOS button to open contacts manager
+  useEffect(() => {
+    const handler = () => setContactsOpen(true);
+    window.addEventListener("open-trusted-contacts", handler);
+    return () => window.removeEventListener("open-trusted-contacts", handler);
+  }, []);
 
   // Geolocation for current position
   const [currentLocation, setCurrentLocation] = useState<{
@@ -332,12 +336,7 @@ export default function Dashboard() {
           <div className="absolute top-4 left-4 right-4 max-w-md mx-auto space-y-2.5 z-[1000]">
             {/* Emergency + I'm Safe row */}
             <div className="flex gap-2">
-              <EmergencyButton
-                journeyId={activeJourney._id}
-                onTriggered={() => {
-                  toast.error("Emergency alert sent to your trusted contacts!");
-                }}
-              />
+              <SOSButton journeyId={activeJourney._id} />
               <Button
                 variant="outline"
                 size="lg"
@@ -444,19 +443,6 @@ export default function Dashboard() {
             Where are you headed?
           </h1>
         </div>
-
-        {/* SMS config warning */}
-        {smsConfig && !smsConfig.configured && (
-          <div className="mb-4 flex items-start gap-3 p-4 rounded-xl bg-balanced/10 border border-balanced/20">
-            <MessageSquareWarning className="w-5 h-5 text-balanced shrink-0 mt-0.5" />
-            <div>
-              <p className="text-sm font-medium text-foreground">SMS notifications are not active</p>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Trusted contacts will not receive text alerts. Add your Twilio credentials in the Keys tab to enable SMS.
-              </p>
-            </div>
-          </div>
-        )}
 
         {/* Route planner card */}
         <Card className="border-border/60 shadow-sm">

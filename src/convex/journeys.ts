@@ -1,7 +1,7 @@
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
-import { api } from "./_generated/api";
+
 
 // Safety scoring factors based on proximity to police stations, hospitals,
 // street lighting, population density, and crime rate — varies by time of day.
@@ -117,23 +117,7 @@ export const startJourney = mutation({
       await ctx.db.patch(args.journeyId, { notifiedTrustedContact: true });
     }
 
-    // Send SMS to all trusted contacts
-    const userName = user?.name ?? "Someone";
-    const eta = new Date(journey.expectedArrival).toLocaleTimeString("en-IN", {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-    for (const contact of contacts) {
-      if (contact.phone) {
-        ctx.scheduler.runAfter(0, api.actions.sendSms.sendJourneyStartSms, {
-          toPhone: contact.phone,
-          userName,
-          startLocation: journey.startLocation,
-          endLocation: journey.endLocation,
-          estimatedTime: eta,
-        });
-      }
-    }
+    // SMS notifications handled client-side via sms: URL scheme
 
     return args.journeyId;
   },
@@ -176,23 +160,7 @@ export const checkDeviation = mutation({
         notifiedContacts: [],
       });
 
-      // Send deviation SMS to trusted contacts
-      const user = await ctx.db.get(journey.userId);
-      const contacts = await ctx.db
-        .query("trustedContacts")
-        .withIndex("by_user", (q) => q.eq("userId", journey.userId))
-        .collect();
-      const userName = user?.name ?? "Someone";
-      for (const contact of contacts) {
-        if (contact.phone) {
-          ctx.scheduler.runAfter(0, api.actions.sendSms.sendDeviationSms, {
-            toPhone: contact.phone,
-            userName,
-            startLocation: journey.startLocation,
-            endLocation: journey.endLocation,
-          });
-        }
-      }
+      // SMS notifications handled client-side via sms: URL scheme
     }
 
     return { deviation };
