@@ -17,6 +17,7 @@ import {
   TrendingUp,
   Star,
   Search,
+  MessageSquareWarning,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -76,6 +77,7 @@ export default function Dashboard() {
   const activeJourney = useQuery(api.journeys.getActive);
   const recentJourneys = useQuery(api.journeys.getRecent) ?? [];
   const contacts = useQuery(api.trustedContacts.list) ?? [];
+  const smsConfig = useQuery(api.smsConfig.checkSmsConfig);
 
   const createJourney = useMutation(api.journeys.create);
   const startJourney = useMutation(api.journeys.startJourney);
@@ -442,6 +444,19 @@ export default function Dashboard() {
             Where are you headed?
           </h1>
         </div>
+
+        {/* SMS config warning */}
+        {smsConfig && !smsConfig.configured && (
+          <div className="mb-4 flex items-start gap-3 p-4 rounded-xl bg-balanced/10 border border-balanced/20">
+            <MessageSquareWarning className="w-5 h-5 text-balanced shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-medium text-foreground">SMS notifications are not active</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Trusted contacts will not receive text alerts. Add your Twilio credentials in the Keys tab to enable SMS.
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Route planner card */}
         <Card className="border-border/60 shadow-sm">

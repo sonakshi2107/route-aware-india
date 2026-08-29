@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, Phone } from "lucide-react";
-import { useMutation } from "convex/react";
+import { useMutation, useAction, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { toast } from "sonner";
 
@@ -25,22 +25,64 @@ export default function EmergencyButton({
   onTriggered,
 }: EmergencyButtonProps) {
   const [open, setOpen] = useState(false);
+  const [sending, setSending] = useState(false);
   const triggerAlert = useMutation(api.emergencyAlerts.trigger);
+  const sendEmergencySms = useAction(api.actions.sendSms.sendEmergencySms);
+  const contacts = useQuery(api.trustedContacts.list) ?? [];
+  const user = useQuery(api.users.currentUser);
 
   const handleEmergency = async () => {
+    setSending(true);
     try {
+      // 1. Create the alert record in the database
       await triggerAlert({
         journeyId: journeyId as any,
         type: "manual",
       });
-      toast.error("Emergency alert sent!", {
-        description:
-          "Your trusted contacts have been notified. Stay safe.",
-      });
+
+      // 2. Send SMS directly from client for immediate error feedback
+      const userName = user?.name ?? "Someone";
+      let smsSent = 0;
+      let smsFailed = 0;
+
+      for (const contact of contacts) {
+        if (contact.phone) {
+          try {
+            await sendEmergencySms({
+              toPhone: contact.phone,
+              userName,
+              alertType: "Manual Emergency",
+              location: undefined,
+            });
+            smsSent++;
+          } catch (err) {
+            console.error(`SMS failed for ${contact.name}:`, err);
+            smsFailed++;
+          }
+        }
+      }
+
+      if (smsSent > 0) {
+        toast.error("Emergency alert sent!", {
+          description: `${smsSent} trusted contact(s) notified via SMS. Stay safe.`,
+        });
+      } else if (smsFailed > 0) {
+        toast.error("Alert created, but SMS failed", {
+          description:
+            "Twilio credentials may not be configured. Add them in the Keys tab.",
+        });
+      } else {
+        toast.error("Emergency alert created!", {
+          description:
+            "No trusted contacts with phone numbers found. Add contacts first.",
+        });
+      }
+
       onTriggered?.();
     } catch {
       toast.error("Failed to send alert. Please try again.");
     }
+    setSending(false);
     setOpen(false);
   };
 
@@ -69,7 +111,9 @@ export default function EmergencyButton({
               Emergency Alert
             </AlertDialogTitle>
             <AlertDialogDescription>
-              This will contact emergency services (100) and send your real-time location to all trusted contacts. This action cannot be reversed.
+              This will contact emergency services (100) and send your real-time
+              location to all trusted contacts via SMS. This action cannot be
+              reversed.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex-col gap-2 sm:flex-col">
@@ -82,11 +126,14 @@ export default function EmergencyButton({
             </AlertDialogAction>
             <AlertDialogAction
               onClick={handleEmergency}
+              disabled={sending}
               className="w-full border border-border bg-background text-foreground hover:bg-muted"
             >
-              Alert Trusted Contacts Only
+              {sending ? "Sending alerts..." : "Alert Trusted Contacts via SMS"}
             </AlertDialogAction>
-            <AlertDialogCancel className="w-full">Cancel</AlertDialogCancel>
+            <AlertDialogCancel className="w-full" disabled={sending}>
+              Cancel
+            </AlertDialogCancel>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

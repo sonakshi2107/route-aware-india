@@ -4,29 +4,39 @@ import { action } from "../_generated/server";
 import { v } from "convex/values";
 import twilio from "twilio";
 
-function getClient() {
+function getConfig() {
   const accountSid = process.env.TWILIO_ACCOUNT_SID;
   const authToken = process.env.TWILIO_AUTH_TOKEN;
+  const fromNumber = process.env.TWILIO_PHONE_NUMBER;
+  return { accountSid, authToken, fromNumber };
+}
+
+function getClient() {
+  const { accountSid, authToken } = getConfig();
   if (!accountSid || !authToken) {
     throw new Error(
-      "Twilio credentials not configured. Set TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN."
+      "Twilio credentials not configured. Set TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN in your project's Keys tab."
     );
   }
   return twilio(accountSid, authToken);
 }
 
 function getFromNumber() {
-  const from = process.env.TWILIO_PHONE_NUMBER;
-  if (!from) {
-    throw new Error("TWILIO_PHONE_NUMBER not configured.");
+  const { fromNumber } = getConfig();
+  if (!fromNumber) {
+    throw new Error(
+      "TWILIO_PHONE_NUMBER not configured. Set it in your project's Keys tab."
+    );
   }
-  return from;
+  return fromNumber;
 }
 
 async function sendSms(to: string, body: string) {
   const client = getClient();
   const from = getFromNumber();
+  console.log(`[Whereहो SMS] Sending to ${to} from ${from}`);
   const message = await client.messages.create({ body, from, to });
+  console.log(`[Whereहो SMS] Sent successfully. SID: ${message.sid}`);
   return message.sid;
 }
 
@@ -51,7 +61,12 @@ export const sendJourneyStartSms = action({
       `Track their safety at whereho.app`,
     ].join("\n");
 
-    return await sendSms(args.toPhone, body);
+    try {
+      return await sendSms(args.toPhone, body);
+    } catch (err) {
+      console.error(`[Whereहो SMS] Failed to send journey start SMS to ${args.toPhone}:`, err);
+      throw err;
+    }
   },
 });
 
@@ -78,7 +93,12 @@ export const sendEmergencySms = action({
       `Please contact them immediately or call emergency services (100).`,
     ].join("\n");
 
-    return await sendSms(args.toPhone, body);
+    try {
+      return await sendSms(args.toPhone, body);
+    } catch (err) {
+      console.error(`[Whereहो SMS] Failed to send emergency SMS to ${args.toPhone}:`, err);
+      throw err;
+    }
   },
 });
 
@@ -100,7 +120,12 @@ export const sendDeviationSms = action({
       `Please check on them immediately.`,
     ].join("\n");
 
-    return await sendSms(args.toPhone, body);
+    try {
+      return await sendSms(args.toPhone, body);
+    } catch (err) {
+      console.error(`[Whereहो SMS] Failed to send deviation SMS to ${args.toPhone}:`, err);
+      throw err;
+    }
   },
 });
 
@@ -120,6 +145,11 @@ export const sendMissedCheckInSms = action({
       `Please contact them immediately or call emergency services (100) if you are concerned.`,
     ].join("\n");
 
-    return await sendSms(args.toPhone, body);
+    try {
+      return await sendSms(args.toPhone, body);
+    } catch (err) {
+      console.error(`[Whereहो SMS] Failed to send missed check-in SMS to ${args.toPhone}:`, err);
+      throw err;
+    }
   },
 });
