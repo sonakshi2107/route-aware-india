@@ -327,7 +327,7 @@ export default function Dashboard() {
           />
 
           {/* Floating controls — top of map */}
-          <div className="absolute top-4 left-4 right-4 max-w-md mx-auto space-y-2.5">
+          <div className="absolute top-4 left-4 right-4 max-w-md mx-auto space-y-2.5 z-[1000]">
             {/* Emergency + I'm Safe row */}
             <div className="flex gap-2">
               <EmergencyButton
