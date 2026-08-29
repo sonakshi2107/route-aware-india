@@ -95,7 +95,7 @@ export default function TrustedContactsManager({
             Trusted Contacts
           </DialogTitle>
           <DialogDescription>
-            These people will be notified during your journey and in emergencies.
+            Your trusted circle will be notified automatically during every journey and in the event of an emergency.
           </DialogDescription>
         </DialogHeader>
 
@@ -171,8 +171,7 @@ export default function TrustedContactsManager({
             <div className="text-center py-8">
               <Users className="w-10 h-10 mx-auto text-muted-foreground/40 mb-3" />
               <p className="text-sm text-muted-foreground">
-                No trusted contacts yet. Add someone who can be notified during
-                emergencies.
+                No trusted contacts added yet. Add someone to receive real-time journey updates and emergency alerts.
               </p>
             </div>
           )}
@@ -213,7 +212,7 @@ export default function TrustedContactsManager({
                       type="tel"
                     />
                     <Input
-                      placeholder="Relationship (e.g., mother, friend)"
+                      placeholder="Relationship (e.g., mother, friend, partner)"
                       value={relationship}
                       onChange={(e) => setRelationship(e.target.value)}
                     />

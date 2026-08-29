@@ -9,13 +9,14 @@ import {
   Clock,
   Settings,
   Users,
-  ChevronRight,
   Check,
-  Phone,
   Locate,
   Play,
-  Square,
   ArrowLeft,
+  Sparkles,
+  TrendingUp,
+  Star,
+  Search,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -72,15 +73,9 @@ interface RouteInfo {
 
 export default function Dashboard() {
   const { user } = useAuth();
-  const checkpoints = useQuery(api.checkIns.getPending, {
-    journeyId: (null as any),
-  });
   const activeJourney = useQuery(api.journeys.getActive);
   const recentJourneys = useQuery(api.journeys.getRecent) ?? [];
   const contacts = useQuery(api.trustedContacts.list) ?? [];
-  const missedCheckIns = useQuery(api.checkIns.getMissedCount, {
-    journeyId: (null as any),
-  });
 
   const createJourney = useMutation(api.journeys.create);
   const startJourney = useMutation(api.journeys.startJourney);
@@ -296,10 +291,9 @@ export default function Dashboard() {
               >
                 <ArrowLeft className="w-4 h-4" />
               </Button>
-              <div>
-                <div className="flex items-center gap-2">
+              <div>                  <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-safe animate-pulse" />
-                  <p className="text-sm font-semibold">Journey Active</p>
+                  <p className="text-sm font-semibold">Journey in Progress</p>
                 </div>
                 <p className="text-xs text-muted-foreground">
                   {activeJourney.startLocation} → {activeJourney.endLocation}
@@ -404,27 +398,31 @@ export default function Dashboard() {
             <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
               <MapPin className="w-4 h-4 text-primary-foreground" />
             </div>
-            <span className="text-lg font-bold tracking-tight">
-              Where<span className="text-accent">हो</span>
-            </span>
+            <div className="flex flex-col">
+              <span className="text-lg font-bold tracking-tight leading-none">
+                Where<span className="text-accent">हो</span>
+              </span>
+              <span className="text-[10px] text-muted-foreground leading-none mt-0.5">AI Route Planner</span>
+            </div>
           </div>
-          <div className="flex items-center gap-1">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-9 w-9"
-              onClick={() => setContactsOpen(true)}
-            >
-              <Users className="w-4 h-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-9 w-9"
-              onClick={() => setSettingsOpen(true)}
-            >
-              <Settings className="w-4 h-4" />
-            </Button>
+          <div className="flex items-center gap-1">              <Button
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9"
+                onClick={() => setContactsOpen(true)}
+                title="Trusted Contacts"
+              >
+                <Users className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-9 w-9"
+                onClick={() => setSettingsOpen(true)}
+                title="Settings"
+              >
+                <Settings className="w-4 h-4" />
+              </Button>
           </div>
         </div>
       </div>
@@ -441,7 +439,7 @@ export default function Dashboard() {
             {user?.name ? `, ${user.name}` : ""}
           </p>
           <h1 className="text-2xl font-bold tracking-tight mt-0.5">
-            Plan a safe journey
+            Where are you headed?
           </h1>
         </div>
 
@@ -452,7 +450,7 @@ export default function Dashboard() {
             <div className="relative">
               <div className="absolute left-3 top-3 h-2 w-2 rounded-full bg-safe border-2 border-safe/30" />
               <Input
-                placeholder="Start location"
+                placeholder="Starting point"
                 className="pl-8"
                 value={startLocation}
                 onChange={(e) => setStartLocation(e.target.value)}
@@ -466,7 +464,7 @@ export default function Dashboard() {
             <div className="relative">
               <div className="absolute left-3 top-3 h-2 w-2 rounded-full bg-fast border-2 border-fast/30" />
               <Input
-                placeholder="Where are you going?"
+                placeholder="Enter destination"
                 className="pl-8"
                 value={endLocation}
                 onChange={(e) => setEndLocation(e.target.value)}
@@ -501,8 +499,8 @@ export default function Dashboard() {
               onClick={handlePlanRoute}
               disabled={!startLocation.trim() || !endLocation.trim()}
             >
-              <Navigation className="w-4 h-4 mr-2" />
-              Find Routes
+              <Sparkles className="w-4 h-4 mr-2" />
+              Analyse Routes
             </Button>
           </CardContent>
         </Card>
@@ -532,7 +530,7 @@ export default function Dashboard() {
 
               {/* Route options */}
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-1">
-                Choose a route
+                AI-generated route options
               </p>
 
               {routes.map((route) => (
@@ -576,7 +574,7 @@ export default function Dashboard() {
                           {route.safetyScore}
                         </p>
                         <p className="text-[10px] text-muted-foreground">
-                          safety
+                          AI score
                         </p>
                       </div>
                     </CardContent>
@@ -596,7 +594,7 @@ export default function Dashboard() {
               </Button>
               {contacts.length === 0 && (
                 <p className="text-xs text-center text-muted-foreground">
-                  Add a trusted contact first to start a journey
+                  Add at least one trusted contact before starting a journey
                 </p>
               )}
 
@@ -605,9 +603,7 @@ export default function Dashboard() {
                 <CardContent className="p-3 flex items-start gap-2.5">
                   <Clock className="w-4 h-4 text-accent mt-0.5 shrink-0" />
                   <p className="text-xs text-muted-foreground leading-relaxed">
-                    Safety scores are adjusted based on the current time. Routes
-                    may be rated differently at night due to reduced lighting and
-                    fewer nearby services.
+                    Safety scores adapt in real time based on current conditions. Routes may be rated differently at night due to reduced lighting and lower service availability.
                   </p>
                 </CardContent>
               </Card>
@@ -619,7 +615,7 @@ export default function Dashboard() {
         {recentJourneys.length > 0 && !planning && (
           <div className="mt-8">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-1 mb-3">
-              Recent journeys
+              Recent Trips
             </p>
             <div className="space-y-2">
               {recentJourneys.slice(0, 5).map((j) => (
@@ -645,14 +641,13 @@ export default function Dashboard() {
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">
                         {j.startLocation} → {j.endLocation}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {new Date(j.createdAt).toLocaleDateString("en-IN", {
-                          day: "numeric",
-                          month: "short",
-                        })}{" "}
-                        • {j.status}
-                      </p>
+                      </p>                <p className="text-xs text-muted-foreground">
+                {new Date(j.createdAt).toLocaleDateString("en-IN", {
+                  day: "numeric",
+                  month: "short",
+                })}{" "}
+                • {j.status}
+              </p>
                     </div>
                     <p
                       className={`text-sm font-bold ${

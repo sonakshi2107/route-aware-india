@@ -77,7 +77,7 @@ export default function SettingsPanel({
             Settings
           </DialogTitle>
           <DialogDescription>
-            Configure your safety preferences and journey settings.
+            Manage your safety preferences and journey configuration.
           </DialogDescription>
         </DialogHeader>
 
@@ -89,7 +89,7 @@ export default function SettingsPanel({
               <Label className="text-sm font-medium">Check-in Interval</Label>
             </div>
             <p className="text-xs text-muted-foreground -mt-2">
-              How often you'll be asked "Are you okay?" during a journey.
+              Controls how frequently you will be prompted to verify your safety during a journey.
             </p>
             <Select value={interval} onValueChange={setInterval}>
               <SelectTrigger>
@@ -118,10 +118,8 @@ export default function SettingsPanel({
                 checked={useBiometric}
                 onCheckedChange={setUseBiometric}
               />
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Use fingerprint or face ID for check-in verification. Falls back
-              to password if unavailable.
+            </div>              <p className="text-xs text-muted-foreground">
+              Authenticate with fingerprint or face recognition for check-in verification. Falls back to password if unavailable.
             </p>
           </div>
 

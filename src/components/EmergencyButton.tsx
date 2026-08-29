@@ -69,8 +69,7 @@ export default function EmergencyButton({
               Emergency Alert
             </AlertDialogTitle>
             <AlertDialogDescription>
-              This will call emergency services (100) and alert your trusted
-              contacts with your current location. This action cannot be undone.
+              This will contact emergency services (100) and send your real-time location to all trusted contacts. This action cannot be reversed.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex-col gap-2 sm:flex-col">

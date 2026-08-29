@@ -135,7 +135,7 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
                     Where<span className="text-accent">हो</span>
                   </CardTitle>
                   <CardDescription>
-                    Sign in to start your safe journey
+                    Access your AI-powered route planner
                   </CardDescription>
                 </CardHeader>
                 <form onSubmit={handleEmailSubmit}>
@@ -189,7 +189,7 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
                         disabled={isLoading}
                       >
                         <UserX className="mr-2 h-4 w-4" />
-                        Continue as Guest
+                        Explore as Guest
                       </Button>
                     </div>
                   </CardContent>
@@ -203,7 +203,7 @@ function Auth({ redirectAfterAuth }: AuthProps = {}) {
                   </div>
                   <CardTitle>Check your email</CardTitle>
                   <CardDescription>
-                    We've sent a code to {step.email}
+                    A verification code has been sent to {step.email}
                   </CardDescription>
                 </CardHeader>
                 <form onSubmit={handleOtpSubmit}>

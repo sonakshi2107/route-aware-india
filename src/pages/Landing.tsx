@@ -36,7 +36,7 @@ function RouteDemo() {
           <div className="flex items-center gap-2 mb-4">
             <div className="w-2 h-2 rounded-full bg-accent animate-pulse" />
             <span className="text-xs font-medium text-muted-foreground">
-              Live Route Analysis
+              AI-Powered Route Analysis
             </span>
           </div>
 
@@ -127,7 +127,7 @@ function RouteDemo() {
           {/* Safety factors */}
           <div className="mt-4 pt-4 border-t border-border/60">
             <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-2 font-medium">
-              Safety Factors
+              AI Analysis Factors
             </p>
             <div className="grid grid-cols-3 gap-2">
               {[
@@ -172,7 +172,7 @@ export default function Landing() {
             className="rounded-full px-5"
             onClick={() => navigate("/auth")}
           >
-            Get Started
+            Sign In
             <ChevronRight className="w-3.5 h-3.5 ml-1" />
           </Button>
         </div>
@@ -191,7 +191,7 @@ export default function Landing() {
             <motion.div variants={fadeUp} className="mb-4">
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-accent/10 text-accent text-xs font-semibold border border-accent/20">
                 <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
-                Built for India
+                AI-Powered Safety for Women
               </span>
             </motion.div>
 
@@ -199,19 +199,19 @@ export default function Landing() {
               variants={fadeUp}
               className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.1] text-foreground"
             >
-              Travel safe.
+              Every route, scored
               <br />
-              <span className="text-accent">Arrive safe.</span>
+              <span className="text-accent">by intelligence.</span>
             </motion.h1>
 
             <motion.p
               variants={fadeUp}
               className="mt-6 text-lg text-muted-foreground leading-relaxed max-w-xl"
             >
-              Where<span className="text-accent font-semibold">हो</span> finds
-              you the safest route home — ranked by lighting, police stations,
-              hospitals, and real-time crime data. Your trusted contacts always
-              know where you are.
+              Where<span className="text-accent font-semibold">हो</span> is an
+              AI-powered route planner that evaluates every path through
+              street lighting, police and hospital proximity, population
+              density, and real-time crime data — so you arrive safe, every time.
             </motion.p>
 
             <motion.div
@@ -223,7 +223,7 @@ export default function Landing() {
                 className="rounded-full px-7"
                 onClick={() => navigate("/auth")}
               >
-                Start a Journey
+                Plan a Safe Route
                 <ChevronRight className="w-4 h-4 ml-1" />
               </Button>
               <Button
@@ -232,7 +232,7 @@ export default function Landing() {
                 className="rounded-full px-7"
                 onClick={() => navigate("/auth")}
               >
-                See How It Works
+                Explore the Platform
               </Button>
             </motion.div>
           </motion.div>
@@ -259,10 +259,10 @@ export default function Landing() {
             className="text-center mb-14"
           >
             <h2 className="text-3xl font-bold tracking-tight">
-              Safety, by design
+              Engineered for women's safety
             </h2>
             <p className="mt-3 text-muted-foreground max-w-lg mx-auto">
-              Every feature is built around one goal: getting you home safely.
+              Every feature is built around one objective: ensuring you get home safely, every single time.
             </p>
           </motion.div>
 
@@ -270,38 +270,38 @@ export default function Landing() {
             {[
               {
                 icon: Shield,
-                title: "3 Safety-Ranked Routes",
-                desc: "Green, yellow, and red routes scored by street lighting, police & hospital proximity, and local crime data.",
+                title: "AI-Scored Route Selection",
+                desc: "Three routes — safest, balanced, and fastest — each ranked by AI analysis of lighting, infrastructure, and crime patterns.",
                 color: "bg-safe/10 text-safe",
               },
               {
                 icon: Clock,
-                title: "Time-Aware Safety",
-                desc: "Safety scores change throughout the day — routes rated differently at midnight vs noon.",
+                title: "Time-Aware Scoring",
+                desc: "Safety scores adapt throughout the day, reflecting real conditions at midnight versus midday.",
                 color: "bg-accent/10 text-accent",
               },
               {
                 icon: Phone,
-                title: "I Feel Unsafe",
-                desc: "One tap alerts emergency services (100) and notifies your trusted contacts instantly.",
+                title: "One-Tap Emergency Response",
+                desc: "Instantly contacts emergency services and alerts your trusted circle with your precise location.",
                 color: "bg-fast/10 text-fast",
               },
               {
                 icon: Users,
-                title: "Periodic Check-ins",
-                desc: "Biometric or password-verified check-ins every 10–15 min. Miss 3 and your contacts are alerted.",
+                title: "Verified Safety Check-ins",
+                desc: "Periodic check-ins confirmed via biometric or password. Miss three, and your trusted contacts are notified immediately.",
                 color: "bg-primary/10 text-primary",
               },
               {
                 icon: MapPin,
-                title: "Route Deviation Alerts",
-                desc: "Instantly notifies your trusted contact if your route differs from what was planned.",
+                title: "Real-Time Route Monitoring",
+                desc: "Detects and alerts your trusted contacts the moment your path deviates from the planned route.",
                 color: "bg-balanced/10 text-balanced",
               },
               {
                 icon: Heart,
                 title: "Journey Notifications",
-                desc: "Your trusted contact receives your start point, destination, and ETA the moment you leave.",
+                desc: "Your trusted contact receives your origin, destination, and estimated arrival the moment your journey begins.",
                 color: "bg-accent/10 text-accent",
               },
             ].map((feature, i) => (
@@ -339,18 +339,17 @@ export default function Landing() {
             viewport={{ once: true }}
           >
             <h2 className="text-3xl font-bold tracking-tight">
-              Your safety shouldn't be an afterthought
+              Safety should never be left to chance
             </h2>
             <p className="mt-3 text-muted-foreground max-w-md mx-auto mb-8">
-              Join thousands of travellers choosing smarter, safer routes every
-              day.
+              Join thousands of women across India choosing smarter, AI-powered routes every day.
             </p>
             <Button
               size="lg"
               className="rounded-full px-8"
               onClick={() => navigate("/auth")}
             >
-              Get Started — It's Free
+              Get Started
               <ChevronRight className="w-4 h-4 ml-1" />
             </Button>
           </motion.div>
@@ -367,9 +366,8 @@ export default function Landing() {
             <span className="text-sm font-semibold">
               Where<span className="text-accent">हो</span>
             </span>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            Built for solo women travellers in India. Stay safe. Stay connected.
+          </div>            <p className="text-xs text-muted-foreground">
+            Designed for women's safety across India. Powered by AI. Built with care.
           </p>
         </div>
       </footer>

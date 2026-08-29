@@ -94,7 +94,7 @@ export default function CheckInModal({
             Are you okay?
           </DialogTitle>
           <DialogDescription className="text-center">
-            Please verify that you're safe to continue your journey.
+            Verify that you're safe so we can keep your trusted contacts informed.
           </DialogDescription>
         </DialogHeader>
 
@@ -110,9 +110,9 @@ export default function CheckInModal({
               <div className="w-16 h-16 rounded-full bg-safe/10 flex items-center justify-center mb-3">
                 <Check className="w-8 h-8 text-safe" />
               </div>
-              <p className="text-lg font-semibold text-safe">You're safe!</p>
+              <p className="text-lg font-semibold text-safe">You're verified safe.</p>
               <p className="text-sm text-muted-foreground mt-1">
-                Your trusted contacts have been notified.
+                Your trusted contacts have been updated.
               </p>
             </motion.div>
           ) : (
@@ -171,7 +171,7 @@ export default function CheckInModal({
               </div>
 
               <p className="text-xs text-center text-muted-foreground">
-                Miss 3 check-ins and your trusted contacts will be alerted.
+                Missing three consecutive check-ins will automatically alert your trusted contacts.
               </p>
             </motion.div>
           )}
