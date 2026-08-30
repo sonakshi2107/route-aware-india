@@ -8,7 +8,14 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, Phone, MapPin, Shield, Check } from "lucide-react";
+import {
+  AlertTriangle,
+  Phone,
+  MapPin,
+  Shield,
+  Check,
+  CheckCircle,
+} from "lucide-react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { toast } from "sonner";
@@ -31,8 +38,13 @@ type ModalState =
   | "idle"
   | "no-contact"
   | "confirm"
-  | "sending-location"
-  | "app-opened";
+  | "getting-location"
+  | "send-to-all";
+
+interface Contact {
+  name: string;
+  phone: string;
+}
 
 export default function SOSButton({ journeyId }: SOSButtonProps) {
   const contacts = useQuery(api.trustedContacts.list) ?? [];
@@ -42,10 +54,8 @@ export default function SOSButton({ journeyId }: SOSButtonProps) {
   const [modalState, setModalState] = useState<ModalState>("idle");
   const [progress, setProgress] = useState(0);
   const [isHolding, setIsHolding] = useState(false);
-  const [selectedContact, setSelectedContact] = useState<{
-    name: string;
-    phone: string;
-  } | null>(null);
+  const [allContacts, setAllContacts] = useState<Contact[]>([]);
+  const [sentContacts, setSentContacts] = useState<Set<string>>(new Set());
 
   const holdTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const progressRef = useRef(0);
@@ -91,11 +101,9 @@ export default function SOSButton({ journeyId }: SOSButtonProps) {
           setIsHolding(false);
           setProgress(0);
 
-          const primary = contacts.find((c) => c.isPrimary) ?? contacts[0];
-          setSelectedContact({
-            name: primary.name,
-            phone: primary.phone,
-          });
+          setAllContacts(
+            contacts.map((c) => ({ name: c.name, phone: c.phone })),
+          );
           setModalState("confirm");
         }
       }, tick);
@@ -114,9 +122,7 @@ export default function SOSButton({ journeyId }: SOSButtonProps) {
   );
 
   const handleSendSOS = useCallback(async () => {
-    if (!selectedContact) return;
-
-    setModalState("sending-location");
+    setModalState("getting-location");
 
     try {
       await triggerAlert({
@@ -128,28 +134,43 @@ export default function SOSButton({ journeyId }: SOSButtonProps) {
     }
 
     const location = await getCurrentLocation();
-    const formattedPhone = formatPhoneForSMS(selectedContact.phone);
-    const opened = sendEmergencySMS(
-      formattedPhone,
-      user?.name ?? "Someone",
-      location ?? undefined,
-    );
+    setSentContacts(new Set());
+    setModalState("send-to-all");
+  }, [journeyId, triggerAlert]);
 
-    if (opened) {
-      setModalState("app-opened");
-    } else {
-      toast.error("Could not open messaging app", {
-        description:
-          "Your browser may not support the sms: scheme. Try calling your contact directly.",
-      });
-      setModalState("idle");
-    }
-  }, [selectedContact, journeyId, triggerAlert, user]);
+  const handleSendToContact = useCallback(
+    (contact: Contact) => {
+      const formattedPhone = formatPhoneForSMS(contact.phone);
+      sendEmergencySMS(
+        formattedPhone,
+        user?.name ?? "Someone",
+        locationRef.current ?? undefined,
+      );
+      setSentContacts((prev) => new Set(prev).add(contact.phone));
+    },
+    [user],
+  );
 
   const handleAddContact = useCallback(() => {
     setModalState("idle");
     window.dispatchEvent(new CustomEvent("open-trusted-contacts"));
   }, []);
+
+  const locationRef = useRef<{ latitude: number; longitude: number } | null>(
+    null,
+  );
+
+  // Update locationRef when modalState changes
+  useEffect(() => {
+    if (modalState === "getting-location") {
+      getCurrentLocation().then((loc) => {
+        locationRef.current = loc;
+      });
+    }
+  }, [modalState]);
+
+  const allSent =
+    allContacts.length > 0 && sentContacts.size === allContacts.length;
 
   return (
     <>
@@ -164,7 +185,7 @@ export default function SOSButton({ journeyId }: SOSButtonProps) {
             onTouchStart={handleHoldStart}
             onTouchEnd={handleHoldEnd}
             onTouchCancel={handleHoldEnd}
-            aria-label="Press and hold SOS for 2 seconds to alert your trusted contact"
+            aria-label="Press and hold SOS for 2 seconds to alert your trusted contacts"
           >
             <svg
               className="absolute inset-0 -rotate-90"
@@ -245,7 +266,7 @@ export default function SOSButton({ journeyId }: SOSButtonProps) {
         </DialogContent>
       </Dialog>
 
-      {/* Confirm SOS dialog */}
+      {/* Confirm SOS — shows all contacts */}
       <Dialog
         open={modalState === "confirm"}
         onOpenChange={(open) => {
@@ -259,21 +280,34 @@ export default function SOSButton({ journeyId }: SOSButtonProps) {
               Send Emergency Alert?
             </DialogTitle>
             <DialogDescription>
-              Send emergency alert to{" "}
+              This will open your messaging app for each of your{" "}
               <span className="font-semibold text-foreground">
-                {selectedContact?.name}
+                {allContacts.length} trusted contact
+                {allContacts.length > 1 ? "s" : ""}
               </span>
-              ?
+              :
             </DialogDescription>
           </DialogHeader>
+          <div className="space-y-2 py-1">
+            {allContacts.map((c) => (
+              <div
+                key={c.phone}
+                className="flex items-center gap-3 rounded-lg bg-muted/50 px-3 py-2"
+              >
+                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Phone className="w-3.5 h-3.5 text-primary" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{c.name}</p>
+                  <p className="text-xs text-muted-foreground">{c.phone}</p>
+                </div>
+              </div>
+            ))}
+          </div>
           <DialogFooter className="flex-col gap-2 sm:flex-col">
-            <Button
-              variant="destructive"
-              className="w-full"
-              onClick={handleSendSOS}
-            >
+            <Button variant="destructive" className="w-full" onClick={handleSendSOS}>
               <AlertTriangle className="w-4 h-4 mr-2" />
-              Send SOS
+              Send SOS to All Contacts
             </Button>
             <Button
               variant="outline"
@@ -288,7 +322,7 @@ export default function SOSButton({ journeyId }: SOSButtonProps) {
 
       {/* Getting location dialog */}
       <Dialog
-        open={modalState === "sending-location"}
+        open={modalState === "getting-location"}
         onOpenChange={() => {}}
       >
         <DialogContent className="sm:max-w-sm pointer-events-none">
@@ -304,34 +338,93 @@ export default function SOSButton({ journeyId }: SOSButtonProps) {
         </DialogContent>
       </Dialog>
 
-      {/* SMS app opened dialog */}
+      {/* Send to all contacts — one-by-one */}
       <Dialog
-        open={modalState === "app-opened"}
+        open={modalState === "send-to-all"}
         onOpenChange={(open) => {
-          if (!open) setModalState("idle");
+          if (!open && !allSent) setModalState("idle");
         }}
       >
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <div className="mx-auto w-14 h-14 rounded-2xl bg-safe/10 flex items-center justify-center mb-2">
-              <Check className="w-7 h-7 text-safe" />
-            </div>
-            <DialogTitle className="text-center">
-              Emergency Alert Ready
-            </DialogTitle>
-            <DialogDescription className="text-center">
-              Your messaging app has been opened. Please tap{" "}
-              <span className="font-semibold text-foreground">Send</span> to
-              send the alert to{" "}
-              <span className="font-semibold text-foreground">
-                {selectedContact?.name}
-              </span>
-              .
-            </DialogDescription>
+            {allSent ? (
+              <div className="mx-auto w-14 h-14 rounded-2xl bg-safe/10 flex items-center justify-center mb-2">
+                <Check className="w-7 h-7 text-safe" />
+              </div>
+            ) : (
+              <DialogTitle className="flex items-center gap-2 text-destructive">
+                <AlertTriangle className="w-5 h-5" />
+                Send Alert to Each Contact
+              </DialogTitle>
+            )}
+            {allSent ? (
+              <>
+                <DialogTitle className="text-center">
+                  All Alerts Sent
+                </DialogTitle>
+                <DialogDescription className="text-center">
+                  Your messaging app was opened for all{" "}
+                  {allContacts.length} trusted contacts. Tap{" "}
+                  <span className="font-semibold text-foreground">Send</span> in
+                  each conversation to deliver the alert.
+                </DialogDescription>
+              </>
+            ) : (
+              <DialogDescription className="text-center">
+                Tap each contact below to open your messaging app with the
+                emergency message pre-filled. Tap{" "}
+                <span className="font-semibold text-foreground">Send</span> in
+                your messaging app for each one.
+              </DialogDescription>
+            )}
           </DialogHeader>
+          <div className="space-y-2 py-1">
+            {allContacts.map((c) => {
+              const sent = sentContacts.has(c.phone);
+              return (
+                <button
+                  key={c.phone}
+                  disabled={sent}
+                  onClick={() => handleSendToContact(c)}
+                  className={`w-full flex items-center gap-3 rounded-lg border px-3 py-2.5 transition-all ${
+                    sent
+                      ? "bg-safe/5 border-safe/20 opacity-70"
+                      : "bg-card border-border hover:border-destructive/40 hover:bg-destructive/5"
+                  }`}
+                >
+                  <div
+                    className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                      sent ? "bg-safe/10" : "bg-destructive/10"
+                    }`}
+                  >
+                    {sent ? (
+                      <CheckCircle className="w-4 h-4 text-safe" />
+                    ) : (
+                      <Phone className="w-3.5 h-3.5 text-destructive" />
+                    )}
+                  </div>
+                  <div className="flex-1 text-left min-w-0">
+                    <p className="text-sm font-medium truncate">{c.name}</p>
+                    <p className="text-xs text-muted-foreground">{c.phone}</p>
+                  </div>
+                  {sent ? (
+                    <span className="text-xs font-medium text-safe">Sent</span>
+                  ) : (
+                    <span className="text-xs font-medium text-destructive">
+                      Tap to send
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
           <DialogFooter>
-            <Button className="w-full" onClick={() => setModalState("idle")}>
-              Done
+            <Button
+              className="w-full"
+              onClick={() => setModalState("idle")}
+              variant={allSent ? "default" : "outline"}
+            >
+              {allSent ? "Done" : "Cancel"}
             </Button>
           </DialogFooter>
         </DialogContent>
