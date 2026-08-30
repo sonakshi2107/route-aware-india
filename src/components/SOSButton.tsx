@@ -164,6 +164,8 @@ export default function SOSButton({ journeyId }: SOSButtonProps) {
     setModalState("sending");
   }, [selectedContacts, journeyId, triggerAlert]);
 
+  const userName = user?.name || user?.email?.split("@")[0] || "A Whereहो user";
+
   const handleSendToCurrent = useCallback(() => {
     const contact = selectedContacts[currentSendIndex];
     if (!contact) return;
@@ -171,7 +173,7 @@ export default function SOSButton({ journeyId }: SOSButtonProps) {
     const formattedPhone = formatPhoneForSMS(contact.phone);
     sendEmergencySMS(
       formattedPhone,
-      user?.name ?? "Someone",
+      userName,
       locationRef.current ?? undefined,
     );
     setSentPhones((prev) => new Set(prev).add(contact.phone));
@@ -182,7 +184,7 @@ export default function SOSButton({ journeyId }: SOSButtonProps) {
         setCurrentSendIndex((i) => i + 1);
       }, 1500);
     }
-  }, [currentSendIndex, selectedContacts, user]);
+  }, [currentSendIndex, selectedContacts, user, userName]);
 
   const handleAddContact = useCallback(() => {
     setModalState("idle");
@@ -199,14 +201,14 @@ export default function SOSButton({ journeyId }: SOSButtonProps) {
       <div className="flex flex-col items-center gap-1.5 flex-1">
         <div className="relative">
           <button
-            className="relative w-14 h-14 rounded-full bg-destructive text-white font-bold text-lg flex items-center justify-center select-none touch-none shadow-lg shadow-destructive/30 transition-transform active:scale-95"
+            className="relative w-14 h-14 rounded-full bg-destructive text-white flex items-center justify-center select-none touch-none shadow-lg shadow-destructive/30 transition-transform active:scale-95"
             onMouseDown={handleHoldStart}
             onMouseUp={handleHoldEnd}
             onMouseLeave={handleHoldEnd}
             onTouchStart={handleHoldStart}
             onTouchEnd={handleHoldEnd}
             onTouchCancel={handleHoldEnd}
-            aria-label="Press and hold SOS for 2 seconds to alert your trusted contacts"
+            aria-label="Press and hold for 2 seconds to alert your trusted contacts"
           >
             <svg
               className="absolute inset-0 -rotate-90"
@@ -235,8 +237,9 @@ export default function SOSButton({ journeyId }: SOSButtonProps) {
                 className="transition-none"
               />
             </svg>
-            <span className="relative z-10 text-base font-bold tracking-wide">
-              SOS
+            <span className="relative z-10 text-[10px] font-bold tracking-tight leading-tight text-center">
+              I Feel
+              Unsafe
             </span>
           </button>
           {isHolding && (
@@ -250,7 +253,7 @@ export default function SOSButton({ journeyId }: SOSButtonProps) {
           )}
         </div>
         <span className="text-[10px] text-muted-foreground text-center leading-tight">
-          Press &amp; hold to alert
+          Press &amp; hold to alert trusted contacts
         </span>
       </div>
 
@@ -287,7 +290,7 @@ export default function SOSButton({ journeyId }: SOSButtonProps) {
         </DialogContent>
       </Dialog>
 
-      {/* Confirm SOS — checkbox selection of contacts */}
+      {/* Confirm — checkbox selection of contacts */}
       <Dialog
         open={modalState === "confirm"}
         onOpenChange={(open) => {
@@ -298,7 +301,7 @@ export default function SOSButton({ journeyId }: SOSButtonProps) {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-destructive">
               <AlertTriangle className="w-5 h-5" />
-              Send Emergency Alert?
+              I Feel Unsafe — Send Alert?
             </DialogTitle>
             <DialogDescription>
               Select which trusted contacts should receive the alert. The
@@ -347,7 +350,7 @@ export default function SOSButton({ journeyId }: SOSButtonProps) {
               onClick={handleProceedToSend}
             >
               <AlertTriangle className="w-4 h-4 mr-2" />
-              Send SOS
+              Send Alert
               {selectedContacts.length > 0 &&
                 ` to ${selectedContacts.length} Contact${selectedContacts.length > 1 ? "s" : ""}`}
             </Button>
@@ -402,7 +405,7 @@ export default function SOSButton({ journeyId }: SOSButtonProps) {
             {allSent ? (
               <>
                 <DialogTitle className="text-center">
-                  All Alerts Sent
+                  Alerts Ready
                 </DialogTitle>
                 <DialogDescription className="text-center">
                   Your messaging app was opened for{" "}
