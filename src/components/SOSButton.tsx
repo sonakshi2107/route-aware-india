@@ -36,9 +36,9 @@ interface SOSButtonProps {
 type ModalState =
   | "idle"
   | "no-contact"
-  | "confirm"
   | "getting-location"
-  | "sending";
+  | "sending"
+  | "done";
 
 interface Contact {
   name: string;
@@ -54,14 +54,16 @@ export default function SOSButton({ journeyId }: SOSButtonProps) {
   const [progress, setProgress] = useState(0);
   const [isHolding, setIsHolding] = useState(false);
   const [allContacts, setAllContacts] = useState<Contact[]>([]);
-  const [selectedPhones, setSelectedPhones] = useState<Set<string>>(new Set());
   const [sentPhones, setSentPhones] = useState<Set<string>>(new Set());
   const [currentSendIndex, setCurrentSendIndex] = useState(0);
+  const [locationObtained, setLocationObtained] = useState(false);
 
   const holdTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const progressRef = useRef(0);
   const holdCompleteRef = useRef(false);
-  const locationRef = useRef<{ latitude: number; longitude: number } | null>(null);
+  const locationRef = useRef<{ latitude: number; longitude: number } | null>(
+    null,
+  );
 
   useEffect(() => {
     return () => {
@@ -80,6 +82,9 @@ export default function SOSButton({ journeyId }: SOSButtonProps) {
     }
   }, []);
 
+  /**
+   * New flow: hold complete → getLocation → create Google Maps link → sendSMS
+   */
   const handleHoldStart = useCallback(
     (e: React.MouseEvent | React.TouchEvent) => {
       e.preventDefault();
@@ -103,16 +108,18 @@ export default function SOSButton({ journeyId }: SOSButtonProps) {
           setIsHolding(false);
           setProgress(0);
 
+          // Map all contacts, start sending
           const mapped = contacts.map((c) => ({
             name: c.name,
             phone: c.phone,
           }));
           setAllContacts(mapped);
-          // Select all contacts by default
-          setSelectedPhones(new Set(mapped.map((c) => c.phone)));
           setSentPhones(new Set());
           setCurrentSendIndex(0);
-          setModalState("confirm");
+          setLocationObtained(false);
+
+          // Step 1: Get location immediately
+          activateSOS(mapped);
         }
       }, tick);
     },
@@ -129,62 +136,61 @@ export default function SOSButton({ journeyId }: SOSButtonProps) {
     [resetHold],
   );
 
-  const toggleContact = useCallback((phone: string) => {
-    setSelectedPhones((prev) => {
-      const next = new Set(prev);
-      if (next.has(phone)) {
-        next.delete(phone);
-      } else {
-        next.add(phone);
+  /**
+   * Full SOS activation: get location → record alert → send SMS to contacts
+   */
+  const activateSOS = useCallback(
+    async (mappedContacts: Contact[]) => {
+      setModalState("getting-location");
+
+      // Record alert in DB (non-blocking)
+      try {
+        await triggerAlert({
+          journeyId: journeyId as any,
+          type: "manual",
+        });
+      } catch {
+        // Continue even if DB recording fails
       }
-      return next;
-    });
-  }, []);
 
-  const selectedContacts = allContacts.filter((c) => selectedPhones.has(c.phone));
+      // Step 2: Get location
+      const loc = await getCurrentLocation();
+      locationRef.current = loc;
+      setLocationObtained(!!loc);
 
-  const handleProceedToSend = useCallback(async () => {
-    if (selectedContacts.length === 0) return;
+      // Step 3: Send SMS to contacts one by one
+      setModalState("sending");
+    },
+    [journeyId, triggerAlert],
+  );
 
-    setModalState("getting-location");
+  const userName =
+    user?.name || user?.email?.split("@")[0] || "A Whereहो user";
 
-    try {
-      await triggerAlert({
-        journeyId: journeyId as any,
-        type: "manual",
-      });
-    } catch {
-      // Continue even if DB recording fails
-    }
-
-    const loc = await getCurrentLocation();
-    locationRef.current = loc;
-    setSentPhones(new Set());
-    setCurrentSendIndex(0);
-    setModalState("sending");
-  }, [selectedContacts, journeyId, triggerAlert]);
-
-  const userName = user?.name || user?.email?.split("@")[0] || "A Whereहो user";
-
+  /**
+   * Send SMS to current contact, then advance
+   */
   const handleSendToCurrent = useCallback(() => {
-    const contact = selectedContacts[currentSendIndex];
+    const contact = allContacts[currentSendIndex];
     if (!contact) return;
 
+    // Step 3: Create Google Maps link and send SMS
     const formattedPhone = formatPhoneForSMS(contact.phone);
     sendEmergencySMS(
       formattedPhone,
       userName,
       locationRef.current ?? undefined,
     );
+
     setSentPhones((prev) => new Set(prev).add(contact.phone));
 
-    // Auto-advance to next after a short delay (user needs to tap Send in SMS app first)
-    if (currentSendIndex < selectedContacts.length - 1) {
+    // Auto-advance to next contact
+    if (currentSendIndex < allContacts.length - 1) {
       setTimeout(() => {
         setCurrentSendIndex((i) => i + 1);
       }, 1500);
     }
-  }, [currentSendIndex, selectedContacts, user, userName]);
+  }, [currentSendIndex, allContacts, userName]);
 
   const handleAddContact = useCallback(() => {
     setModalState("idle");
@@ -192,12 +198,19 @@ export default function SOSButton({ journeyId }: SOSButtonProps) {
   }, []);
 
   const allSent =
-    selectedContacts.length > 0 &&
-    selectedContacts.every((c) => sentPhones.has(c.phone));
+    allContacts.length > 0 &&
+    allContacts.every((c) => sentPhones.has(c.phone));
+
+  // Auto-mark as done after all sent
+  useEffect(() => {
+    if (allSent && modalState === "sending") {
+      setTimeout(() => setModalState("done"), 800);
+    }
+  }, [allSent, modalState]);
 
   return (
     <>
-      {/* SOS Button */}
+      {/* ===== I FEEL UNSAFE BUTTON ===== */}
       <div className="flex flex-col items-center gap-1.5 flex-1">
         <div className="relative">
           <button
@@ -239,6 +252,7 @@ export default function SOSButton({ journeyId }: SOSButtonProps) {
             </svg>
             <span className="relative z-10 text-[10px] font-bold tracking-tight leading-tight text-center">
               I Feel
+              <br />
               Unsafe
             </span>
           </button>
@@ -257,7 +271,7 @@ export default function SOSButton({ journeyId }: SOSButtonProps) {
         </span>
       </div>
 
-      {/* No trusted contact dialog */}
+      {/* ===== NO TRUSTED CONTACT ===== */}
       <Dialog
         open={modalState === "no-contact"}
         onOpenChange={(open) => {
@@ -290,82 +304,7 @@ export default function SOSButton({ journeyId }: SOSButtonProps) {
         </DialogContent>
       </Dialog>
 
-      {/* Confirm — checkbox selection of contacts */}
-      <Dialog
-        open={modalState === "confirm"}
-        onOpenChange={(open) => {
-          if (!open) setModalState("idle");
-        }}
-      >
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-destructive">
-              <AlertTriangle className="w-5 h-5" />
-              I Feel Unsafe — Send Alert?
-            </DialogTitle>
-            <DialogDescription>
-              Select which trusted contacts should receive the alert. The
-              message will include your name and location.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-2 py-1">
-            {allContacts.map((c) => {
-              const checked = selectedPhones.has(c.phone);
-              return (
-                <button
-                  key={c.phone}
-                  onClick={() => toggleContact(c.phone)}
-                  className={`w-full flex items-center gap-3 rounded-lg border px-3 py-2.5 transition-all ${
-                    checked
-                      ? "bg-destructive/5 border-destructive/30"
-                      : "bg-card border-border opacity-60"
-                  }`}
-                >
-                  {/* Custom checkbox */}
-                  <div
-                    className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-colors ${
-                      checked
-                        ? "bg-destructive border-destructive"
-                        : "border-muted-foreground/40"
-                    }`}
-                  >
-                    {checked && <Check className="w-3 h-3 text-white" />}
-                  </div>
-                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                    <Phone className="w-3.5 h-3.5 text-primary" />
-                  </div>
-                  <div className="flex-1 text-left min-w-0">
-                    <p className="text-sm font-medium truncate">{c.name}</p>
-                    <p className="text-xs text-muted-foreground">{c.phone}</p>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-          <DialogFooter className="flex-col gap-2 sm:flex-col">
-            <Button
-              variant="destructive"
-              className="w-full"
-              disabled={selectedContacts.length === 0}
-              onClick={handleProceedToSend}
-            >
-              <AlertTriangle className="w-4 h-4 mr-2" />
-              Send Alert
-              {selectedContacts.length > 0 &&
-                ` to ${selectedContacts.length} Contact${selectedContacts.length > 1 ? "s" : ""}`}
-            </Button>
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={() => setModalState("idle")}
-            >
-              Cancel
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Getting location dialog */}
+      {/* ===== GETTING LOCATION ===== */}
       <Dialog
         open={modalState === "getting-location"}
         onOpenChange={() => {}}
@@ -377,13 +316,13 @@ export default function SOSButton({ journeyId }: SOSButtonProps) {
               Getting your location...
             </DialogTitle>
             <DialogDescription>
-              Preparing emergency message with your current coordinates.
+              Acquiring GPS coordinates for the emergency message.
             </DialogDescription>
           </DialogHeader>
         </DialogContent>
       </Dialog>
 
-      {/* Sending — one-by-one with current highlight */}
+      {/* ===== SENDING — one-by-one ===== */}
       <Dialog
         open={modalState === "sending"}
         onOpenChange={(open) => {
@@ -392,40 +331,27 @@ export default function SOSButton({ journeyId }: SOSButtonProps) {
       >
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            {allSent ? (
-              <div className="mx-auto w-14 h-14 rounded-2xl bg-safe/10 flex items-center justify-center mb-2">
-                <Check className="w-7 h-7 text-safe" />
-              </div>
-            ) : (
-              <DialogTitle className="flex items-center gap-2 text-destructive">
-                <AlertTriangle className="w-5 h-5" />
-                Send Alert to Each Contact
-              </DialogTitle>
-            )}
-            {allSent ? (
-              <>
-                <DialogTitle className="text-center">
-                  Alerts Ready
-                </DialogTitle>
-                <DialogDescription className="text-center">
-                  Your messaging app was opened for{" "}
-                  {selectedContacts.length} trusted contact
-                  {selectedContacts.length > 1 ? "s" : ""}. Tap{" "}
-                  <span className="font-semibold text-foreground">Send</span> in
-                  each conversation to deliver the alert.
-                </DialogDescription>
-              </>
-            ) : (
-              <DialogDescription className="text-center">
-                Tap the contact below to open your messaging app with the
-                emergency message pre-filled. Tap{" "}
-                <span className="font-semibold text-foreground">Send</span> in
-                your messaging app, then the next contact will appear.
-              </DialogDescription>
-            )}
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="w-5 h-5" />
+              Sending Alert
+            </DialogTitle>
+            <DialogDescription className="text-center">
+              {locationObtained ? (
+                <>
+                  Location captured. Tap the contact below to open your
+                  messaging app with the emergency message and Google Maps
+                  link pre-filled.
+                </>
+              ) : (
+                <>
+                  Location unavailable. Tap the contact below to send the
+                  emergency message without location.
+                </>
+              )}
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-2 py-1">
-            {selectedContacts.map((c, idx) => {
+            {allContacts.map((c, idx) => {
               const sent = sentPhones.has(c.phone);
               const isCurrent = idx === currentSendIndex && !sent;
               return (
@@ -443,13 +369,21 @@ export default function SOSButton({ journeyId }: SOSButtonProps) {
                 >
                   <div
                     className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                      sent ? "bg-safe/10" : isCurrent ? "bg-destructive/10" : "bg-muted"
+                      sent
+                        ? "bg-safe/10"
+                        : isCurrent
+                          ? "bg-destructive/10"
+                          : "bg-muted"
                     }`}
                   >
                     {sent ? (
                       <CheckCircle className="w-4 h-4 text-safe" />
                     ) : (
-                      <Phone className={`w-3.5 h-3.5 ${isCurrent ? "text-destructive" : "text-muted-foreground"}`} />
+                      <Phone
+                        className={`w-3.5 h-3.5 ${
+                          isCurrent ? "text-destructive" : "text-muted-foreground"
+                        }`}
+                      />
                     )}
                   </div>
                   <div className="flex-1 text-left min-w-0">
@@ -478,6 +412,37 @@ export default function SOSButton({ journeyId }: SOSButtonProps) {
               variant={allSent ? "default" : "outline"}
             >
               {allSent ? "Done" : "Cancel"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ===== ALL SENT ===== */}
+      <Dialog
+        open={modalState === "done"}
+        onOpenChange={(open) => {
+          if (!open) setModalState("idle");
+        }}
+      >
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <div className="mx-auto w-14 h-14 rounded-2xl bg-safe/10 flex items-center justify-center mb-2">
+              <Check className="w-7 h-7 text-safe" />
+            </div>
+            <DialogTitle className="text-center">Alerts Sent</DialogTitle>
+            <DialogDescription className="text-center">
+              Your messaging app was opened for {allContacts.length} trusted
+              contact{allContacts.length > 1 ? "s" : ""}. Tap{" "}
+              <span className="font-semibold text-foreground">Send</span> in
+              each conversation to deliver the alert.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              className="w-full"
+              onClick={() => setModalState("idle")}
+            >
+              Done
             </Button>
           </DialogFooter>
         </DialogContent>
