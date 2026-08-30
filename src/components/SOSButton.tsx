@@ -164,6 +164,8 @@ export default function SOSButton({ journeyId }: SOSButtonProps) {
     setModalState("sending");
   }, [selectedContacts, journeyId, triggerAlert]);
 
+  const userName = user?.name || user?.email?.split("@")[0] || "A Whereहो user";
+
   const handleSendToCurrent = useCallback(() => {
     const contact = selectedContacts[currentSendIndex];
     if (!contact) return;
@@ -171,7 +173,7 @@ export default function SOSButton({ journeyId }: SOSButtonProps) {
     const formattedPhone = formatPhoneForSMS(contact.phone);
     sendEmergencySMS(
       formattedPhone,
-      user?.name ?? "Someone",
+      userName,
       locationRef.current ?? undefined,
     );
     setSentPhones((prev) => new Set(prev).add(contact.phone));
@@ -182,7 +184,7 @@ export default function SOSButton({ journeyId }: SOSButtonProps) {
         setCurrentSendIndex((i) => i + 1);
       }, 1500);
     }
-  }, [currentSendIndex, selectedContacts, user]);
+  }, [currentSendIndex, selectedContacts, user, userName]);
 
   const handleAddContact = useCallback(() => {
     setModalState("idle");
