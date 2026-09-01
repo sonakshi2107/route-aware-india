@@ -36,6 +36,7 @@ import SOSButton from "@/components/SOSButton";
 import CheckInModal from "@/components/CheckInModal";
 import TrustedContactsManager from "@/components/TrustedContactsManager";
 import SettingsPanel from "@/components/SettingsPanel";
+import { useSocket } from "@/hooks/use-socket";
 
 // Indian cities coordinates for demo
 const INDIAN_CITIES: Record<string, [number, number]> = {
@@ -112,6 +113,9 @@ export default function Dashboard() {
     return () => window.removeEventListener("open-trusted-contacts", handler);
   }, []);
 
+  // Socket.io for live tracking
+  const { socket, subscribeJourney, unsubscribeJourney } = useSocket();
+
   // Geolocation for current position
   const [currentLocation, setCurrentLocation] = useState<{
     lat: number;
@@ -177,8 +181,21 @@ export default function Dashboard() {
       });
       await startJourney({ journeyId });
       setView("journey");
+
+      // Subscribe to Socket.io journey room for live tracking
+      subscribeJourney(journeyId);
+
+      // Emit journey-started event so trusted contacts are notified
+      socket.current?.emit("journey-started", {
+        journeyId,
+        userId: user?._id ?? "guest",
+        start: startLocation,
+        end: endLocation,
+        expectedArrival: Date.now() + 45 * 60 * 1000,
+      });
+
       toast.success("Journey started!", {
-        description: `Your trusted contact has been notified.`,
+        description: `Your trusted contacts have been notified.`,
       });
     } catch {
       toast.error("Failed to start journey");
@@ -189,6 +206,7 @@ export default function Dashboard() {
     if (!activeJourney) return;
     try {
       await completeJourney({ journeyId: activeJourney._id });
+      unsubscribeJourney(activeJourney._id);
       setView("planner");
       setPlanning(false);
       setStartCoords(null);
@@ -241,6 +259,17 @@ export default function Dashboard() {
 
     return () => clearInterval(interval);
   }, [activeJourney, currentLocation, checkDeviation]);
+
+  // Broadcast live position via Socket.io during active journey
+  useEffect(() => {
+    if (!activeJourney || !currentLocation) return;
+    socket.current?.emit("journey-position", {
+      journeyId: activeJourney._id,
+      lat: currentLocation.lat,
+      lng: currentLocation.lng,
+      timestamp: Date.now(),
+    });
+  }, [activeJourney, currentLocation, socket]);
 
   const routes: RouteInfo[] = startCoords && endCoords
     ? [
