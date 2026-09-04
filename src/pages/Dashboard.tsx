@@ -13,6 +13,8 @@ import {
   Play,
   ArrowLeft,
   Sparkles,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -100,6 +102,7 @@ export default function Dashboard() {
   // Panels
   const [contactsOpen, setContactsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [mapMinimized, setMapMinimized] = useState(false);
 
   // Listen for custom event from SOS button to open contacts manager
   useEffect(() => {
@@ -317,15 +320,46 @@ export default function Dashboard() {
         </div>
 
         {/* Map */}
-        <div className="flex-1 relative">
-          <MapView
-            center={currentLocation ? [currentLocation.lat, currentLocation.lng] : startCoords ?? [28.63, 77.22]}
-            zoom={14}
-            routes={demoRoutes}
-            activeRoute={activeJourney.routeType}
-            currentLocation={currentLocation}
-            className="h-full min-h-[400px] rounded-none border-0"
-          />
+        <div className="flex-1 relative flex flex-col">
+          {/* Minimize toggle */}
+          <button
+            className="absolute top-3 right-3 z-[1001] bg-card/95 backdrop-blur-md border border-border/60 shadow-lg rounded-full px-3 py-1.5 flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+            onClick={() => setMapMinimized((m) => !m)}
+          >
+            {mapMinimized ? (
+              <>
+                <ChevronDown className="w-3.5 h-3.5" />
+                Show Map
+              </>
+            ) : (
+              <>
+                <ChevronUp className="w-3.5 h-3.5" />
+                Minimize Map
+              </>
+            )}
+          </button>
+
+          <AnimatePresence initial={false}>
+            {!mapMinimized && (
+              <motion.div
+                key="map"
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.3, ease: "easeInOut" }}
+                className="overflow-hidden flex-1"
+              >
+                <MapView
+                  center={currentLocation ? [currentLocation.lat, currentLocation.lng] : startCoords ?? [28.63, 77.22]}
+                  zoom={14}
+                  routes={demoRoutes}
+                  activeRoute={activeJourney.routeType}
+                  currentLocation={currentLocation}
+                  className="h-full min-h-[400px] rounded-none border-0"
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* Floating controls — top of map */}
           <div className="absolute top-4 left-4 right-4 max-w-md mx-auto space-y-2.5 z-[1000]">
