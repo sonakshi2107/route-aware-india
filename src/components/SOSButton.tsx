@@ -13,6 +13,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
+import type { Id } from "@/convex/_generated/dataModel";
 import {
   sendEmergencySMS,
   getCurrentLocation,
@@ -24,7 +25,7 @@ const RING_RADIUS = 28;
 const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS;
 
 interface SOSButtonProps {
-  journeyId?: string;
+  journeyId?: Id<"journeys">;
 }
 
 type ModalState =
@@ -35,7 +36,8 @@ type ModalState =
   | "app-opened";
 
 export default function SOSButton({ journeyId }: SOSButtonProps) {
-  const contacts = useQuery(api.trustedContacts.list) ?? [];
+  const contactsRaw = useQuery(api.trustedContacts.list);
+  const contacts = contactsRaw ?? [];
   const user = useQuery(api.users.currentUser);
   const triggerAlert = useMutation(api.emergencyAlerts.trigger);
 
@@ -120,7 +122,7 @@ export default function SOSButton({ journeyId }: SOSButtonProps) {
 
     try {
       await triggerAlert({
-        journeyId: journeyId as any,
+        journeyId: journeyId,
         type: "manual",
       });
     } catch {

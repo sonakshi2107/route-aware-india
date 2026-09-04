@@ -3,7 +3,6 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -14,11 +13,12 @@ import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
+import type { Id } from "@/convex/_generated/dataModel";
 
 interface CheckInModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  checkInId: string;
+  checkInId: Id<"checkIns"> | null;
   useBiometric?: boolean;
 }
 
@@ -34,6 +34,7 @@ export default function CheckInModal({
   const respond = useMutation(api.checkIns.respond);
 
   const handleBiometric = async () => {
+    if (!checkInId) return;
     setLoading(true);
     try {
       // Attempt Web Authentication API
@@ -45,7 +46,7 @@ export default function CheckInModal({
           // In production, use actual WebAuthn challenge
           await new Promise((r) => setTimeout(r, 800));
           setVerified(true);
-          await respond({ checkInId: checkInId as any, isVerified: true });
+          await respond({ checkInId: checkInId, isVerified: true });
           toast.success("Check-in verified via biometric");
           setTimeout(() => {
             onOpenChange(false);
@@ -63,14 +64,14 @@ export default function CheckInModal({
   };
 
   const handlePassword = async () => {
-    if (!password.trim()) return;
+    if (!checkInId || !password.trim()) return;
     setLoading(true);
     try {
       // For v1: accept any non-empty password as verification
       // In production: verify against stored hash
       await new Promise((r) => setTimeout(r, 500));
       setVerified(true);
-      await respond({ checkInId: checkInId as any, isVerified: true });
+      await respond({ checkInId: checkInId, isVerified: true });
       toast.success("Check-in verified");
       setTimeout(() => {
         onOpenChange(false);

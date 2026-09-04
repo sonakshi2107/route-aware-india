@@ -3,13 +3,11 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Card,
   CardContent,
@@ -25,6 +23,7 @@ import {
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { toast } from "sonner";
+import type { Id } from "@/convex/_generated/dataModel";
 import { validatePhoneNumber } from "@/lib/sms";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -77,18 +76,18 @@ export default function TrustedContactsManager({
     setLoading(false);
   };
 
-  const handleRemove = async (contactId: string, contactName: string) => {
+  const handleRemove = async (contactId: Id<"trustedContacts">, contactName: string) => {
     try {
-      await removeContact({ contactId: contactId as any });
+      await removeContact({ contactId });
       toast.success(`${contactName} removed`);
     } catch {
       toast.error("Failed to remove contact");
     }
   };
 
-  const handleSetPrimary = async (contactId: string) => {
+  const handleSetPrimary = async (contactId: Id<"trustedContacts">) => {
     try {
-      await updateContact({ contactId: contactId as any, isPrimary: true });
+      await updateContact({ contactId, isPrimary: true });
       toast.success("Primary contact updated");
     } catch {
       toast.error("Failed to update");

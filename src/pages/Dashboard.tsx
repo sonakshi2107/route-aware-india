@@ -5,7 +5,6 @@ import {
   Zap,
   AlertTriangle,
   MapPin,
-  Navigation,
   Clock,
   Settings,
   Users,
@@ -14,9 +13,6 @@ import {
   Play,
   ArrowLeft,
   Sparkles,
-  TrendingUp,
-  Star,
-  Search,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -80,9 +76,15 @@ export default function Dashboard() {
   const startJourney = useMutation(api.journeys.startJourney);
   const completeJourney = useMutation(api.journeys.complete);
   const checkDeviation = useMutation(api.journeys.checkDeviation);
+  const pendingCheckIn = useQuery(
+    api.checkIns.getPending,
+    activeJourney ? { journeyId: activeJourney._id } : "skip"
+  );
+  const pendingCheckInId = pendingCheckIn?._id;
 
-  // UI State
-  const [view, setView] = useState<"planner" | "journey">("planner");
+  // UI State — view derived from activeJourney to avoid setState-in-effect
+  const [manualView, setManualView] = useState<"planner" | "journey">("planner");
+  const view: "planner" | "journey" = activeJourney ? "journey" : manualView;
   const [startLocation, setStartLocation] = useState("");
   const [endLocation, setEndLocation] = useState("");
   const [startCoords, setStartCoords] = useState<[number, number] | null>(null);
@@ -94,8 +96,6 @@ export default function Dashboard() {
 
   // Check-in
   const [checkInOpen, setCheckInOpen] = useState(false);
-  const [pendingCheckInId, setPendingCheckInId] = useState<string | null>(null);
-  const [checkInCountdown, setCheckInCountdown] = useState<number | null>(null);
 
   // Panels
   const [contactsOpen, setContactsOpen] = useState(false);
@@ -136,12 +136,7 @@ export default function Dashboard() {
     };
   }, []);
 
-  // Switch to journey view when active journey exists
-  useEffect(() => {
-    if (activeJourney) {
-      setView("journey");
-    }
-  }, [activeJourney]);
+
 
   // Route planning
   const handlePlanRoute = useCallback(() => {
@@ -172,7 +167,7 @@ export default function Dashboard() {
         expectedArrival: Date.now() + 45 * 60 * 1000, // 45 min default
       });
       await startJourney({ journeyId });
-      setView("journey");
+      setManualView("journey");
       toast.success("Journey started!", {
         description: `Your trusted contact has been notified.`,
       });
@@ -185,7 +180,7 @@ export default function Dashboard() {
     if (!activeJourney) return;
     try {
       await completeJourney({ journeyId: activeJourney._id });
-      setView("planner");
+      setManualView("planner");
       setPlanning(false);
       setStartCoords(null);
       setEndCoords(null);
@@ -376,7 +371,7 @@ export default function Dashboard() {
         <CheckInModal
           open={checkInOpen}
           onOpenChange={setCheckInOpen}
-          checkInId={pendingCheckInId ?? "placeholder"}
+          checkInId={pendingCheckInId ?? null}
           useBiometric={user?.useBiometric ?? false}
         />
 
@@ -673,7 +668,7 @@ export default function Dashboard() {
       <CheckInModal
         open={checkInOpen}
         onOpenChange={setCheckInOpen}
-        checkInId={pendingCheckInId ?? "placeholder"}
+        checkInId={pendingCheckInId ?? null}
         useBiometric={user?.useBiometric ?? false}
       />
       <TrustedContactsManager
