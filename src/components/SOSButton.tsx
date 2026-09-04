@@ -133,7 +133,7 @@ export default function SOSButton({ journeyId }: SOSButtonProps) {
     const formattedPhone = formatPhoneForSMS(selectedContact.phone);
     const opened = sendEmergencySMS(
       formattedPhone,
-      user?.name ?? "Someone",
+      user?.name ?? user?.email?.split("@")[0] ?? "A Whereहो user",
       location ?? undefined,
     );
 
