@@ -17,9 +17,6 @@ import {
   TrendingUp,
   Star,
   Search,
-  ChevronDown,
-  ChevronUp,
-  Map,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,7 +33,6 @@ import SOSButton from "@/components/SOSButton";
 import CheckInModal from "@/components/CheckInModal";
 import TrustedContactsManager from "@/components/TrustedContactsManager";
 import SettingsPanel from "@/components/SettingsPanel";
-import { useSocket } from "@/hooks/use-socket";
 
 // Indian cities coordinates for demo
 const INDIAN_CITIES: Record<string, [number, number]> = {
@@ -104,7 +100,6 @@ export default function Dashboard() {
   // Panels
   const [contactsOpen, setContactsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [mapMinimized, setMapMinimized] = useState(false);
 
   // Listen for custom event from SOS button to open contacts manager
   useEffect(() => {
@@ -112,9 +107,6 @@ export default function Dashboard() {
     window.addEventListener("open-trusted-contacts", handler);
     return () => window.removeEventListener("open-trusted-contacts", handler);
   }, []);
-
-  // Socket.io for live tracking
-  const { socket, subscribeJourney, unsubscribeJourney } = useSocket();
 
   // Geolocation for current position
   const [currentLocation, setCurrentLocation] = useState<{
@@ -181,21 +173,8 @@ export default function Dashboard() {
       });
       await startJourney({ journeyId });
       setView("journey");
-
-      // Subscribe to Socket.io journey room for live tracking
-      subscribeJourney(journeyId);
-
-      // Emit journey-started event so trusted contacts are notified
-      socket.current?.emit("journey-started", {
-        journeyId,
-        userId: user?._id ?? "guest",
-        start: startLocation,
-        end: endLocation,
-        expectedArrival: Date.now() + 45 * 60 * 1000,
-      });
-
       toast.success("Journey started!", {
-        description: `Your trusted contacts have been notified.`,
+        description: `Your trusted contact has been notified.`,
       });
     } catch {
       toast.error("Failed to start journey");
@@ -206,7 +185,6 @@ export default function Dashboard() {
     if (!activeJourney) return;
     try {
       await completeJourney({ journeyId: activeJourney._id });
-      unsubscribeJourney(activeJourney._id);
       setView("planner");
       setPlanning(false);
       setStartCoords(null);
@@ -259,17 +237,6 @@ export default function Dashboard() {
 
     return () => clearInterval(interval);
   }, [activeJourney, currentLocation, checkDeviation]);
-
-  // Broadcast live position via Socket.io during active journey
-  useEffect(() => {
-    if (!activeJourney || !currentLocation) return;
-    socket.current?.emit("journey-position", {
-      journeyId: activeJourney._id,
-      lat: currentLocation.lat,
-      lng: currentLocation.lng,
-      timestamp: Date.now(),
-    });
-  }, [activeJourney, currentLocation, socket]);
 
   const routes: RouteInfo[] = startCoords && endCoords
     ? [
@@ -354,144 +321,55 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Map + Controls */}
-        <div className="flex-1 flex flex-col relative">
-          {/* Map area — collapsible */}
-          <AnimatePresence initial={false}>
-            {!mapMinimized && (
-              <motion.div
-                key="map"
-                className="flex-1 relative"
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
-                transition={{ duration: 0.3, ease: "easeInOut" }}
-                style={{ minHeight: 0 }}
-              >
-                <div className="absolute inset-0">
-                  <MapView
-                    center={currentLocation ? [currentLocation.lat, currentLocation.lng] : startCoords ?? [28.63, 77.22]}
-                    zoom={14}
-                    routes={demoRoutes}
-                    activeRoute={activeJourney.routeType}
-                    currentLocation={currentLocation}
-                    className="h-full rounded-none border-0"
-                  />
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+        {/* Map */}
+        <div className="flex-1 relative">
+          <MapView
+            center={currentLocation ? [currentLocation.lat, currentLocation.lng] : startCoords ?? [28.63, 77.22]}
+            zoom={14}
+            routes={demoRoutes}
+            activeRoute={activeJourney.routeType}
+            currentLocation={currentLocation}
+            className="h-full min-h-[400px] rounded-none border-0"
+          />
 
-          {/* Floating controls — always visible */}
-          <div className={`relative z-[1000] p-4 ${mapMinimized ? "" : "absolute top-4 left-4 right-4 max-w-md mx-auto space-y-2.5"}`}>
-            {/* Minimize / Expand toggle */}
-            <div className="flex justify-center mb-2">
+          {/* Floating controls — top of map */}
+          <div className="absolute top-4 left-4 right-4 max-w-md mx-auto space-y-2.5 z-[1000]">
+            {/* Emergency + I'm Safe row */}
+            <div className="flex gap-2">
+              <SOSButton journeyId={activeJourney._id} />
               <Button
                 variant="outline"
-                size="sm"
-                className="bg-card/95 backdrop-blur-md border-border/60 shadow-lg rounded-full px-4 gap-1.5 text-xs font-medium"
-                onClick={() => setMapMinimized(!mapMinimized)}
+                size="lg"
+                className="flex-1 h-14 text-base font-bold gap-2.5 bg-card/95 backdrop-blur-md border-border/60 shadow-lg rounded-xl"
+                onClick={() => setCheckInOpen(true)}
               >
-                {mapMinimized ? (
-                  <>
-                    <Map className="w-3.5 h-3.5" />
-                    Show Map
-                    <ChevronUp className="w-3 h-3" />
-                  </>
-                ) : (
-                  <>
-                    <ChevronDown className="w-3 h-3" />
-                    Minimize Map
-                  </>
-                )}
+                <Check className="w-5 h-5" />
+                I'm Safe
               </Button>
             </div>
 
-            {!mapMinimized && (
-              <>
-                {/* Emergency + I'm Safe row */}
-                <div className="flex gap-2">
-                  <SOSButton journeyId={activeJourney._id} />
-                  <Button
-                    variant="outline"
-                    size="lg"
-                    className="flex-1 h-14 text-base font-bold gap-2.5 bg-card/95 backdrop-blur-md border-border/60 shadow-lg rounded-xl"
-                    onClick={() => setCheckInOpen(true)}
-                  >
-                    <Check className="w-5 h-5" />
-                    I'm Safe
-                  </Button>
-                </div>
-
-                {/* Secondary row */}
-                <div className="flex gap-2">
-                  <Card className="flex-1 bg-card/95 backdrop-blur-md border-border/60 shadow-lg">
-                    <CardContent className="p-2.5 flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Clock className="w-4 h-4 text-accent" />
-                        <span className="text-xs font-medium">Check-in</span>
-                      </div>
-                      <span className="text-xs text-muted-foreground">
-                        {user?.checkInInterval ?? 10} min
-                      </span>
-                    </CardContent>
-                  </Card>
-                  <Button
-                    variant="outline"
-                    className="bg-card/95 backdrop-blur-md border-border/60 shadow-lg rounded-xl px-4"
-                    onClick={() => setContactsOpen(true)}
-                  >
-                    <Users className="w-4 h-4" />
-                  </Button>
-                </div>
-              </>
-            )}
+            {/* Secondary row */}
+            <div className="flex gap-2">
+              <Card className="flex-1 bg-card/95 backdrop-blur-md border-border/60 shadow-lg">
+                <CardContent className="p-2.5 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-accent" />
+                    <span className="text-xs font-medium">Check-in</span>
+                  </div>
+                  <span className="text-xs text-muted-foreground">
+                    {user?.checkInInterval ?? 10} min
+                  </span>
+                </CardContent>
+              </Card>
+              <Button
+                variant="outline"
+                className="bg-card/95 backdrop-blur-md border-border/60 shadow-lg rounded-xl px-4"
+                onClick={() => setContactsOpen(true)}
+              >
+                <Users className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
-
-          {/* Minimized compact bar */}
-          {mapMinimized && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="px-4 pb-4 space-y-2.5"
-            >
-              {/* Emergency + I'm Safe row */}
-              <div className="flex gap-2 max-w-md mx-auto">
-                <SOSButton journeyId={activeJourney._id} />
-                <Button
-                  variant="outline"
-                  size="lg"
-                  className="flex-1 h-14 text-base font-bold gap-2.5 bg-card/95 backdrop-blur-md border-border/60 shadow-lg rounded-xl"
-                  onClick={() => setCheckInOpen(true)}
-                >
-                  <Check className="w-5 h-5" />
-                  I'm Safe
-                </Button>
-              </div>
-
-              {/* Secondary row */}
-              <div className="flex gap-2 max-w-md mx-auto">
-                <Card className="flex-1 bg-card/95 backdrop-blur-md border-border/60 shadow-lg">
-                  <CardContent className="p-2.5 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Clock className="w-4 h-4 text-accent" />
-                      <span className="text-xs font-medium">Check-in</span>
-                    </div>
-                    <span className="text-xs text-muted-foreground">
-                      {user?.checkInInterval ?? 10} min
-                    </span>
-                  </CardContent>
-                </Card>
-                <Button
-                  variant="outline"
-                  className="bg-card/95 backdrop-blur-md border-border/60 shadow-lg rounded-xl px-4"
-                  onClick={() => setContactsOpen(true)}
-                >
-                  <Users className="w-4 h-4" />
-                </Button>
-              </div>
-            </motion.div>
-          )}
         </div>
 
         {/* Check-in Modal */}

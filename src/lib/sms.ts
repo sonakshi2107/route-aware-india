@@ -9,16 +9,12 @@ export function sendEmergencySMS(
   userName: string,
   location?: { latitude: number; longitude: number },
 ): boolean {
-  let message = `🚨 EMERGENCY ALERT\n\n${userName} may need help and has sent you this alert through Whereहो (safety app).`;
+  let message = `🚨 EMERGENCY ALERT\n\n${userName} may need help. Please contact them immediately.`;
 
   if (location) {
     const mapsLink = `https://www.google.com/maps?q=${location.latitude},${location.longitude}`;
-    message += `\n\n📍 Their current location:\n${mapsLink}`;
-  } else {
-    message += `\n\n⚠️ Location was unavailable at the time of this alert.`;
+    message += `\n\nCurrent location:\n${mapsLink}`;
   }
-
-  message += `\n\nPlease contact ${userName} immediately or reach out to local authorities.`;
 
   try {
     window.location.href = `sms:${phone}?body=${encodeURIComponent(message)}`;
@@ -53,7 +49,7 @@ export function getCurrentLocation(): Promise<{
       () => {
         resolve(null);
       },
-      { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 },
+      { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 },
     );
   });
 }
