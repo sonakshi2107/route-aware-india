@@ -195,8 +195,8 @@ export default function SOSButton({ journeyId }: SOSButtonProps) {
                 className="transition-none"
               />
             </svg>
-            <span className="relative z-10 text-base font-bold tracking-wide">
-              SOS
+            <span className="relative z-10 text-base font-bold tracking-wide leading-tight">
+              I Feel Unsafe
             </span>
           </button>
           {isHolding && (
@@ -210,7 +210,7 @@ export default function SOSButton({ journeyId }: SOSButtonProps) {
           )}
         </div>
         <span className="text-[10px] text-muted-foreground text-center leading-tight">
-          Press &amp; hold to alert
+          Press &amp; hold to alert trusted contacts
         </span>
       </div>
 
@@ -258,7 +258,7 @@ export default function SOSButton({ journeyId }: SOSButtonProps) {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-destructive">
               <AlertTriangle className="w-5 h-5" />
-              Send Emergency Alert?
+              I Feel Unsafe — Send Alert?
             </DialogTitle>
             <DialogDescription>
               Send emergency alert to{" "}
@@ -275,7 +275,7 @@ export default function SOSButton({ journeyId }: SOSButtonProps) {
               onClick={handleSendSOS}
             >
               <AlertTriangle className="w-4 h-4 mr-2" />
-              Send SOS
+              Send Alert
             </Button>
             <Button
               variant="outline"
